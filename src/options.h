@@ -62,10 +62,16 @@ public:
     LowComplexityFilterOptions() {
         enabled = false;
         threshold = 0.3;
+        sdust = false;
+        sdust_W = 64;
+        sdust_T = 20;
     }
 public:
     bool enabled;
     double threshold;
+    bool sdust;
+    int sdust_W;
+    int sdust_T;
 };
 
 class OverrepresentedSequenceAnasysOptions {

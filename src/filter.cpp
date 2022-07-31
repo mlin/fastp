@@ -1,7 +1,9 @@
+#include <cassert>
 #include "processor.h"
 #include "peprocessor.h"
 #include "seprocessor.h"
 #include "overlapanalysis.h"
+#include "sdust.h"
 
 Filter::Filter(Options* opt){
     mOptions = opt;
@@ -56,7 +58,11 @@ int Filter::passFilter(Read* r) {
             return FAIL_TOO_LONG;
     }
 
-    if(mOptions->complexityFilter.enabled) {
+    if(mOptions->complexityFilter.sdust) {
+        if(!passSdustComplexityFilter(r)) {
+            return FAIL_COMPLEXITY;
+        }
+    } else if(mOptions->complexityFilter.enabled) {
         if(!passLowComplexityFilter(r))
             return FAIL_COMPLEXITY;
     }
@@ -78,6 +84,31 @@ bool Filter::passLowComplexityFilter(Read* r) {
         return true;
     else
         return false;
+}
+
+bool Filter::passSdustComplexityFilter(Read* r) {
+    const int length = r->length();
+    // call sdust on read sequence
+    int n = -1;
+    uint64_t* masks = sdust(0, (uint8_t*) r->mSeq->c_str(), length,
+                            mOptions->complexityFilter.sdust_T, mOptions->complexityFilter.sdust_W,
+                            &n);
+    assert(n == 0 || (n > 0 && masks));
+    // sum the lengths of the disjoint masked regions
+    int length_masked = 0;
+    for (int i = 0, mask_end = 0; i < n; i++) {
+        const int mask_beg = masks[i] >> 32;
+        assert(mask_beg >= mask_end);
+        mask_end = masks[i] & 0xFFFFFFFF;
+        assert(mask_beg <= mask_end);
+        assert(mask_end <= length);
+        length_masked += mask_end - mask_beg;
+        // printf("%s\n", r->mSeq->substr(mask_beg, mask_end - mask_beg).c_str());
+    }
+    free(masks);
+    assert(length_masked <= length);
+    // apply threshold to the fraction of the read that was masked
+    return (double(length_masked) / double(length)) <= 1.0 - mOptions->complexityFilter.threshold;
 }
 
 Read* Filter::trimAndCut(Read* r, int front, int tail, int& frontTrimmed) {

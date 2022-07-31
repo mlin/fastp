@@ -110,6 +110,9 @@ int main(int argc, char* argv[]){
     // low complexity filtering
     cmd.add("low_complexity_filter", 'y', "enable low complexity filter. The complexity is defined as the percentage of base that is different from its next base (base[i] != base[i+1]).");
     cmd.add<int>("complexity_threshold", 'Y', "the threshold for low complexity filter (0~100). Default is 30, which means 30% complexity is required.", false, 30);
+    cmd.add("sdust_complexity_filter", 0, "enable SDUST complexity filter. Supersedes --low_complexity_filter when enabled, and --complexity_threshold x requires at least x% of bases NOT masked by SDUST.");
+    cmd.add<int>("sdust_W", 0, "SDUST window size", false, 64);
+    cmd.add<int>("sdust_T", 0, "SDUST window score threshold", false, 20);
 
     // filter by indexes
     cmd.add<string>("filter_by_index1", 0, "specify a file contains a list of barcodes of index1 to be filtered out, one barcode per line", false, "");
@@ -329,6 +332,10 @@ int main(int argc, char* argv[]){
     // low complexity filter
     opt.complexityFilter.enabled = cmd.exist("low_complexity_filter");
     opt.complexityFilter.threshold = (min(100, max(0, cmd.get<int>("complexity_threshold")))) / 100.0;
+    opt.complexityFilter.sdust = cmd.exist("sdust_complexity_filter");
+    opt.complexityFilter.sdust_W = cmd.get<int>("sdust_W");
+    opt.complexityFilter.sdust_T = cmd.get<int>("sdust_T");
+    opt.complexityFilter.enabled = opt.complexityFilter.enabled || opt.complexityFilter.sdust;
 
     // overlap correction
     opt.correction.enabled = cmd.exist("correction");
