@@ -101,7 +101,7 @@ bool Filter::passSdustComplexityFilter(Read* r) {
         assert(mask_beg >= mask_end);
         mask_end = masks[i] & 0xFFFFFFFF;
         assert(mask_beg <= mask_end);
-        assert(mask_end <= length);
+        mask_end = mask_end <= length ? mask_end : length; // https://github.com/lh3/sdust/issues/2
         length_masked += mask_end - mask_beg;
         // printf("%s\n", r->mSeq->substr(mask_beg, mask_end - mask_beg).c_str());
     }
